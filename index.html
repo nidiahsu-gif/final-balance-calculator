@@ -309,7 +309,7 @@
       background: #fee3c6;
       font-weight: 800;
       text-align: center;
-      font-size: 18px;
+      font-size: 19px;
       line-height: 1.45;
     }
 
@@ -499,30 +499,32 @@
               <label class="field">
                 類型
                 <select id="eventType">
+                  <option value=""></option>
                   <option value="婚宴">婚宴</option>
                   <option value="工商">工商</option>
-                  <option value="尾牙春酒">尾牙春酒</option>
+                  <option value="尾牙春酒" selected>尾牙春酒</option>
                   <option value="其他宴會">其他宴會</option>
                 </select>
               </label>
               <label class="field">
                 日期
-                <input id="eventDate" type="date" value="2026-07-07">
+                <input id="eventDate" type="date" value="2026-07-11">
               </label>
               <label class="field">
                 時段
                 <select id="mealPeriod">
-                  <option value="午宴">午宴</option>
-                  <option value="晚宴" selected>晚宴</option>
+                  <option value=""></option>
+                  <option value="午宴" selected>午宴</option>
+                  <option value="晚宴">晚宴</option>
                 </select>
               </label>
               <label class="field">
                 廳別
-                <input id="hall" type="text" value="華漾廳">
+                <input id="hall" type="text" value="亞瑟廳">
               </label>
               <label class="field full">
                 客戶／主題名稱
-                <input id="clientName" type="text" value="蘇絲倚總裁慶生宴">
+                <input id="clientName" type="text" value="張李府喜宴">
               </label>
               <label class="field">
                 分館／館別
@@ -611,13 +613,18 @@
   </main>
 
   <script>
-    const state = {
+    const DRAFT_KEY = "dianhuaBalanceDraft.v2";
+
+    function cloneState(source) {
+      return JSON.parse(JSON.stringify(source));
+    }
+
+    const DEFAULT_STATE = {
       main: [
-        { name: "華桌單價", price: 11000, qty: 10 },
+        { name: "葷桌單價", price: 11000, qty: 10 },
         { name: "素桌單價", price: 11000, qty: 2 },
-        { name: "主桌加入力量加價", price: 1100, qty: 2 },
+        { name: "主桌加人加量加價", price: 1100, qty: 2 },
         { name: "客桌素食餐", price: 1100, qty: 2 },
-        { name: "便當", price: 132, qty: 5 },
         { name: "炒飯", price: 198, qty: 2 }
       ],
       other: [
@@ -627,10 +634,18 @@
       extra: [
         { name: "金牌啤酒600ml每瓶NT$100+10%", price: 0, qty: 0 },
         { name: "海尼根650ml每瓶NT$120+10%", price: 0, qty: 0 },
-        { name: "貝爾鮮紅酒每瓶NT$350+10%", price: 0, qty: 0 },
-        { name: "礦泉水600ml每瓶NT$30+10%", price: 0, qty: 0 }
+        { name: "精選法國紅酒每瓶NT$500+10%", price: 0, qty: 0 },
+        { name: "礦泉水330ml每瓶NT$30+10%", price: 0, qty: 0 }
       ]
     };
+
+    const EMPTY_STATE = {
+      main: [{ name: "", price: 0, qty: 0, comp: false }],
+      other: [{ name: "", price: 0, qty: 0, comp: false }],
+      extra: [{ name: "", price: 0, qty: 0, comp: false }]
+    };
+
+    let state = cloneState(DEFAULT_STATE);
 
     const fields = [
       "eventType", "eventDate", "mealPeriod", "hall", "clientName",
@@ -823,6 +838,27 @@
       `;
     }
 
+    function clearForNewEntry() {
+      state = cloneState(EMPTY_STATE);
+      setValue("eventType", "");
+      setValue("eventDate", "");
+      setValue("mealPeriod", "");
+      setValue("hall", "");
+      setValue("clientName", "");
+      setValue("branch", "新莊典華");
+      setValue("deposit", 0);
+      setValue("serviceMode", "included");
+      setValue("showOtherFees", true);
+      setValue("notice", "");
+      setValue("footerNote", "");
+      document.querySelectorAll('input[name="payment"]').forEach(input => {
+        input.checked = false;
+      });
+      renderEditors();
+      renderSheet();
+      saveDraft();
+    }
+
     function saveDraft() {
       const draft = {
         state,
@@ -830,11 +866,11 @@
         payments: Array.from(document.querySelectorAll('input[name="payment"]:checked')).map(input => input.value)
       };
       fields.forEach(id => draft.fields[id] = getValue(id));
-      localStorage.setItem("dianhuaBalanceDraft", JSON.stringify(draft));
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
     }
 
     function loadDraft() {
-      const raw = localStorage.getItem("dianhuaBalanceDraft");
+      const raw = localStorage.getItem(DRAFT_KEY);
       if (!raw) return;
       try {
         const draft = JSON.parse(raw);
@@ -862,7 +898,7 @@
           });
         }
       } catch {
-        localStorage.removeItem("dianhuaBalanceDraft");
+        localStorage.removeItem(DRAFT_KEY);
       }
     }
 
@@ -903,7 +939,8 @@
     document.getElementById("printBtn").addEventListener("click", () => window.print());
     document.getElementById("resetBtn").addEventListener("click", () => {
       localStorage.removeItem("dianhuaBalanceDraft");
-      location.reload();
+      localStorage.removeItem(DRAFT_KEY);
+      clearForNewEntry();
     });
 
     loadDraft();
